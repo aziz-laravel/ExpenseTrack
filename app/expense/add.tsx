@@ -3,7 +3,6 @@ import { CameraView } from '@/components/CameraView';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { Input } from '@/components/Input';
 import { colors } from '@/constants/Colors';
-
 import { useAuthStore } from '@/store/auth-store';
 import { useExpenseStore } from '@/store/expense-store';
 import { performOCR } from '@/utils/ocr-utils';
@@ -34,6 +33,7 @@ export default function AddExpenseScreen() {
   
   const [showCamera, setShowCamera] = useState(false);
   const [processingImage, setProcessingImage] = useState(false);
+  const [ocrText, setOcrText] = useState('');
   
   const [amountError, setAmountError] = useState('');
   const [dateError, setDateError] = useState('');
@@ -96,6 +96,10 @@ export default function AddExpenseScreen() {
     try {
       const result = await performOCR(uri);
       
+      // Set OCR text for display
+      setOcrText(result.text || '');
+      
+      // Update form fields with extracted data
       if (result.amount) {
         setAmount(result.amount.toString());
       }
@@ -105,10 +109,11 @@ export default function AddExpenseScreen() {
       }
       
       if (result.merchantName) {
-        setNotes(result.merchantName);
+        setNotes(prev => prev || result.merchantName || '');
       }
     } catch (error) {
       console.error('OCR processing failed:', error);
+      Alert.alert('OCR Error', 'Failed to process the receipt. Please enter details manually.');
     } finally {
       setProcessingImage(false);
     }
@@ -153,7 +158,10 @@ export default function AddExpenseScreen() {
                   />
                   <TouchableOpacity 
                     style={styles.removeReceiptButton}
-                    onPress={() => setReceiptUrl('')}
+                    onPress={() => {
+                      setReceiptUrl('');
+                      setOcrText('');
+                    }}
                   >
                     <X size={20} color="white" />
                   </TouchableOpacity>
@@ -171,9 +179,17 @@ export default function AddExpenseScreen() {
                 >
                   <Camera size={24} color={colors.primary} />
                   <Text style={styles.addReceiptText}>Add Receipt</Text>
+                  <Text style={styles.addReceiptSubtext}>Take a photo to auto-fill details</Text>
                 </TouchableOpacity>
               )}
             </View>
+            
+            {ocrText ? (
+              <View style={styles.ocrResultContainer}>
+                <Text style={styles.ocrResultTitle}>Extracted Text:</Text>
+                <Text style={styles.ocrResultText}>{ocrText}</Text>
+              </View>
+            ) : null}
             
             <Input
               label="Amount"
@@ -256,6 +272,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontWeight: '500',
   },
+  addReceiptSubtext: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 4,
+  },
   receiptContainer: {
     position: 'relative',
     height: 200,
@@ -287,6 +308,25 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  ocrResultContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  ocrResultTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  ocrResultText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   notesInput: {
     height: 100,

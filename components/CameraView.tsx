@@ -1,9 +1,8 @@
-
 import { colors } from '@/constants/Colors';
 import { CameraType, CameraView as ExpoCameraView, useCameraPermissions } from 'expo-camera';
 import { Camera, X } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface CameraViewProps {
   onCapture: (uri: string) => void;
@@ -51,15 +50,13 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCapture, onClose }) =>
     try {
       setIsCapturing(true);
       
-      if (Platform.OS === 'web') {
-        // For web, we need to use a different approach
-        const photo = await cameraRef.current.takePictureAsync();
-        onCapture(photo.uri);
-      } else {
-        // For native platforms
-        const photo = await cameraRef.current.takePictureAsync();
-        onCapture(photo.uri);
-      }
+      // Take the picture with high quality for better OCR results
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        base64: false, // We'll convert to base64 later to handle both web and native
+      });
+      
+      onCapture(photo.uri);
     } catch (error) {
       console.error('Error capturing image:', error);
     } finally {
